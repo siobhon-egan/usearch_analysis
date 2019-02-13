@@ -17,16 +17,12 @@ echo Triming primers and distal bases
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo ""
 
-# At the moment this usearch command can only take .fasta as input so can only be done
-# after QF
-
 # Creating working directories
 
 mkdir ${primer_matched}
 mkdir ${primer_not_matched}
 
 #*****************************************************************************************
-# Step 1: Finding seqs with FWD primer
 
 for file3 in ${merged_data}/*.fastq
 	do
