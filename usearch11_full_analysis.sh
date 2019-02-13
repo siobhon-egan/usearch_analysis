@@ -1,5 +1,9 @@
 #!/bin/bash
-#
+##########################################################################################
+##########################################################################################
+############################# USEARCH v11 complete pipeline ##############################
+##########################################################################################
+##########################################################################################
 #	Requirements: usearch11 must be installed on the PATH as "usearch11".
 # Remeber if you have a large dataset you will need the 64 bit version.
 #	This script will work in unix and linux environments.
@@ -58,9 +62,13 @@ derep_dir="6.derep_data"
 SF="7.singleton_filtered"
 # Enter directory for singlteton sequences
 low_abund_seqs="8.singleton_sequences"
+# Enter max size to discard i.e. to discard singletons = 1, duplicates = 2
 maxsize="1"
+# Enter directory for sequence clustering
 cluster="9.cluster"
+# Enter sub-directory for uparse_otu clustering
 uparse_otus="9a.otus"
+# Enter sub-directory for unoise_zotu clustering
 unoise_zotus="9b.zotus"
 
 
