@@ -309,6 +309,14 @@ cd ${uparse_otus}
 
   usearch11 -usearch_global ../all_SF.fasta -db uparse_otus.fasta -strand both -id 0.97 -otutabout uparse_otu_tab.txt -biomout uparse_otu_biom.biom
 
+  # The next two lines produce a distance matrix file and then a tree (newick format)
+  # Current parameters are a guide only and you will need to optimse them for your data
+  # Large datasets can take a long time, so you can skip this part for now to speed up analysis
+
+  usearch11 -calc_distmx uparse_otus.fasta -tabbedout uparse_otus_distmx.txt -maxdist 0.2 -termdist 0.3
+
+	usearch11 -cluster_aggd uparse_otus_distmx.txt -treeout uparse_otus_clusters.tree -clusterout uparse_otus_clusters.txt \
+	  -id 0.80 -linkage min
 cd ..
 
 #*****************************************************************************************
@@ -328,6 +336,14 @@ cd ${unoise_zotus}
 
 	usearch11 -otutab ../all_SF_DR.fasta -zotus unoise_zotus_relabeled.fasta -otutabout unoise_otu_tab.txt -biomout unoise_otu_biom.biom -mapout unoise_map.txt -notmatched unoise_notmatched.fasta -dbmatched dbmatches.fasta -sizeout
 
+  # The next two lines produce a distance matrix file and then a tree (newick format)
+  # Current parameters are a guide only and you will need to optimse them for your data
+  # Large datasets can take a long time, so you can skip this part for now to speed up analysis
+
+  usearch11 -calc_distmx unoise_zotus.fasta -tabbedout unoise_zotus_distmx.txt -maxdist 0.2 -termdist 0.3
+
+  usearch11 -cluster_aggd unoise_zotus_distmx.txt -treeout unoise_zotus_clusters.tree -clusterout unoise_zotus_clusters.txt \
+    -id 0.80 -linkage min
 cd ..
 cd ..
 
