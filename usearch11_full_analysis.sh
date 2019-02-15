@@ -46,8 +46,8 @@ primer_matched="3a.primer_matches"
 # Enter directory for sequences that do not match primers
 primer_not_matched="3b.primer_not_matched"
 # Enter forward sequences (5'-3'). Wildcard letters indicating degenerate positions in the primer are supported. See IUPAC(https://drive5.com/usearch/manual/IUPAC_codes.html) codes for details.
-fwd_primer="CCAGCAGCCGCGGTAATTC"
-rev_primer="CTTTCGCAGTAGTTYGTCTTTAACAAATCT"
+fwd_primer="AGAGTTTGATCCTGGCTYAG" #16S v1-2 primer, ref Gofton et al. Parasites & Vectors (2015) 8:345
+rev_primer="TGCTGCCTCCCGTAGGAGT" #16S v1-2 primer, ref Turner et al. J Eukaryot Microbiol (1999) 46(4):32
 # Enter directory for quality filtered output
 QF="4.quality_filtered"
 # Enter max error rate. Natural choice is 1, however may want to decrease to 0.5 or 0.25 for more stringent filtering.
@@ -82,17 +82,28 @@ echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo Read summary of raw `.fastq` sequences
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Prouduce a short summary report of raw fastq sequences using `-fastx_info` command.
+# Expected error should be <2 for both forward and reverse reads. Usually reverse reads have a higher error rate.
+
 mkdir $read_summary
 
- for fq in $raw_data/*R1*.fastq
- do
-  usearch11 -fastx_info $fq -output $read_summary/1a_fwd_fastq_info.txt
- done
+for fq in $raw_data/*R1*.fastq
+  do
+    echo ""
+    echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    echo "fastq_info forward reads"
 
- for fq in $raw_data/*R2*.fastq
- do
-  usearch11 -fastx_info $fq -output $read_summary/1b_rev_fastq_info.txt
- done
+    usearch11 -fastx_info $fastq -output $read_summary/a_fwd_fastq_info.txt
+done
+
+for fq in $raw_data/*R2*.fastq
+  do
+    echo ""
+    echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    echo "fastq_info forward reads"
+
+    usearch11 -fastx_info $fastq -output $read_summary/b_rev_fastq_info.txt
+done
 
 ##########################################################################################
 
@@ -100,17 +111,17 @@ echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo Merging paried illumina `.fastq` sequences
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Merge paired-end reads using `-fastq_mergepairs` command, and rename sequences. This would be done before primers are trimmed.
 
 mkdir ${merged_data}
 mkdir working1
 
 #*****************************************************************************************
-# Step1: merge data with usearch9 -fastq-filter
+# Part 1: merge reads
 
 for file1 in ${raw_data}/*R1_001.fastq
-	do
-
-		echo ""
+  do
+    echo ""
 		echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		echo Merging paired reads
 		echo forward reads are:
@@ -118,66 +129,52 @@ for file1 in ${raw_data}/*R1_001.fastq
 		echo reverse reads are:
 		echo $(basename ${file1} R1_001.fastq)R2_001.fastq
 
-	usearch11 -fastq_mergepairs ${file1} -reverse "${raw_data}/$(basename -s R1_001.fastq ${file1})R2_001.fastq" -fastqout "working1/$(basename "$file1")" -fastq_maxdiffs ${maxdiffs} -fastq_minovlen ${overlap} -report ${merged_data}/2a_merging_seqs_report.txt -tabbedout ${merged_data}/2b_tabbedout.txt
+    usearch11 -fastq_mergepairs ${file1} -reverse "${raw_data}/$(basename -s R1_001.fastq ${file1})R2_001.fastq" -fastqout "working1/$(basename "$file1")" -fastq_maxdiffs ${maxdiffs} -fastq_minovlen ${overlap} -report ${merged_data}/2a_merging_seqs_report.txt -tabbedout ${merged_data}/2b_tabbedout.txt
 done
 
 #*****************************************************************************************
-# Step 2: Remove "_L001_R1_001" from filenames
+# Part 2: Remove "_L001_R1_001" from filenames
 
 for file2 in working1/*.fastq
 	do
-
 		rename="$(basename ${file2} _L001_R1_001.fastq).fastq"
-
-		mv ${file2} ${merged_data}/${rename}
+	mv ${file2} ${merged_data}/${rename}
 done
 
 #*****************************************************************************************
 # Removing working directory
 
-		rm -r working1
+rm -r working1
 
 ##########################################################################################
 
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo Triming primers and distal bases
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-echo ""
 
-# At the moment this usearch command can only take .fasta as input so can only be done
-# after QF
-
-# Creating working directories
+# The `-search_pcr2` command searches for matches to a primer pair and outputs the sequence in between (i.e. amplicon with primers removed) into `primer_matched` file
 
 mkdir ${primer_matched}
 mkdir ${primer_not_matched}
 
-#*****************************************************************************************
-# Step 1: Finding seqs with FWD primer
-
 for file3 in ${merged_data}/*.fastq
 	do
 
-		echo ""
-		echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		echo Trimming primers step 1: finding seqs with FWD primer
-		echo input is:
-		echo ${file3}
-
 	usearch11 -search_pcr2 ${file3} -fwdprimer ${fwd_primer} \
 	-revprimer ${rev_primer} \
-	-strand both -fastqout "${primer_matched}/$(basename ${file3})" -notmatchedfq "${primer_not_matched}/$(basename ${file3})" -tabbedout pcr2_output.txt
+	-strand both -fastqout "${primer_matched}/$(basename ${file3})" -notmatchedfq "${primer_not_matched}/$(basename ${file3})" -tabbedout ${primer_matched}pcr2_output.txt
 done
 
 ##########################################################################################
+
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo Quality control and removing dimer seqs
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-echo ""
 
-		mkdir ${QF}
+# Quality filtering of fastq files using the `-fastq_filter` command, output gives fasta files.
 
-#*****************************************************************************************
+mkdir ${QF}
+
 for file4 in ${primer_matched}/*.fastq
 	do
 		echo ""
@@ -186,65 +183,62 @@ for file4 in ${primer_matched}/*.fastq
 		echo input is:
 		echo ${file4}
 
-	usearch11 -fastq_filter ${file4} -fastaout "${QF}/$(basename "$file4" .fastq).fasta" -fastq_maxee ${max_ee} -fastq_minlen ${minlen}
+    usearch11 -fastq_filter ${file4} -fastaout "${QF}/$(basename "$file4" .fastq).fasta" -fastq_maxee ${max_ee} -fastq_minlen ${minlen}
 done
 
-# For this script to run correctly input fasta label must be formatted >sequence_id and filename must be sample_id.fasta.
-# Result will be ">barcodelabel=sample_id;sequenceid"
+##########################################################################################
 
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo Renameing sequences with ">barcodelabel=sample_id;sequence_id"
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-		mkdir ${labeled_data}
-		mkdir working2
+# For this script to run correctly input fasta label must be formatted >sequence_id and filename must be sample_id.fasta.
+# Result will be ">barcodelabel=sample_id;sequenceid"
+
+mkdir ${labeled_data}
+mkdir working2
 
 #*****************************************************************************************
-# Step 1: Remove ">" from start of sequence_ID
+# Part 1: Remove ">" from start of sequence_ID
 
 for file5 in ${QF}/*.fasta
 	do
-
 		sed -e 's/>/>barcodelabel=;/g' ${file5} > working2/$(basename "$file5" .fasta).txt
 done
 
 #*****************************************************************************************
-# Step 2: Add sample_ID (should be filename) to produce ">barcodelabel=sample_ID;sequence_ID"
+# Part 2: Add sample_ID (should be filename) to produce ">barcodelabel=sample_ID;sequence_ID"
 
 for file6 in working2/*.txt
 	do
-
 		sample_id=$(basename ${file6} .txt)
 		echo ${sample_id}
 
 	sed -e "s/;/${sample_id};/g" ${file6} > "${labeled_data}/$(basename "$file6" .txt).fasta"
 done
 
-
 #*****************************************************************************************
 # Remove working directories
 
-		rm -r working2
+rm -r working2
 
 ################################################################################################
-################################################################################################
+
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo Removing low abundant seqs singletons per sample
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-echo ""
 
-# Creating directories
+# Remove low abundant sequences (e.g. singletons) in samples using the `-fastx_uniques` command
 
 mkdir ${derep_dir}
 mkdir ${SF}
 mkdir ${low_abund_seqs}
 
 #*****************************************************************************************
-# Step 1: Dereplicating
+# Part 1: Dereplicating
 
 for file7 in ${labeled_data}/*.fasta
 	do
-
 		echo ""
 		echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		echo Removing singletons step 1: derep_fulllength
@@ -252,15 +246,13 @@ for file7 in ${labeled_data}/*.fasta
 		echo ${file7}
 
 		usearch11 -fastx_uniques ${file7} -fastaout "${derep_dir}/$(basename "$file7" .fasta).fasta" -sizeout
-	done
-
+done
 
 #*****************************************************************************************
-# Step 2: Filtering low abundant seqs {maxsize}
+# Part 2: Filtering low abundant seqs {maxsize}
 
 for file8 in ${derep_dir}/*.fasta
 	do
-
 		echo ""
 		echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		echo Removing singletons step 2: sorting uniques
@@ -268,72 +260,77 @@ for file8 in ${derep_dir}/*.fasta
 		echo ${file8}
 
 		usearch11 -sortbysize ${file8} -fastaout "${low_abund_seqs}/$(basename "$file8" .fasta).fasta" -maxsize ${maxsize}
-	done
+done
 
+#*****************************************************************************************
+# Step 3: Mapping reads
 
-	# Step 3: Mapping reads
-
-for file11 in ${labeled_data}/*.fasta
+for file9 in ${labeled_data}/*.fasta
 	do
-
 	  echo ""
 	  echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	  echo Removing singletons step 3: mapping reads to low abundant uniques
 	  echo input is:
-	  echo ${file11}
+	  echo ${file9}
 
-	  usearch11 -search_exact ${file11} -db "${low_abund_seqs}/$(basename "$file11" .fasta).fasta" -strand plus -notmatched "${SF}/$(basename "$file11" .fasta).fasta"
-	done
+	  usearch11 -search_exact ${file9} -db "${low_abund_seqs}/$(basename "$file9" .fasta).fasta" -strand plus -notmatched "${SF}/$(basename "$file9" .fasta).fasta"
+done
 
-
-#*****************************************************************************************
 ################################################################################################
 ################################################################################################
+
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo CLUSTERING
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Concatenate all singleton filter sequences into a single fasta file
+# Find the set of unique sequences in an input file, also called dereplication using `-fastx_uniques` command
+
+mkdir ${cluster}
+
+cat ${SF}/*.fasta > ${cluster}/all_SF.fasta
+
+cd ${cluster}
+
+usearch11 -fastx_uniques all_SF.fasta -fastaout all_SF_DR.fasta -sizeout
+
+#*****************************************************************************************
 
 echo ----------------------------------------------------------------------------
 echo Part a - Generating UPARSE OTUs
 echo ----------------------------------------------------------------------------
 
-mkdir ${cluster}
+# Cluster sequences in 97% operational taxonomic units (OTUs) using UPARSE algorithm `-cluster_otus` command and generate an OTU table
 
-	cat ${SF}/*.fasta > ${cluster}/all_SF.fasta
+mkdir ${uparse_otus}
+cd ${uparse_otus}
 
-cd ${cluster}
+	usearch11 -cluster_otus ../all_SF_DR.fasta -otus uparse_otus.fasta -relabel OTU
 
-	usearch11 -fastx_uniques all_SF.fasta -fastaout all_SF_DR.fasta -sizeout
+  usearch11 -usearch_global ../all_SF.fasta -db uparse_otus.fasta -strand both -id 0.97 -otutabout uparse_otu_tab.txt -biomout uparse_otu_biom.biom
 
-	mkdir ${uparse_otus}
-	cd ${uparse_otus}
+cd ..
 
-		usearch11 -cluster_otus ../all_SF_DR.fasta -otus uparse_otus.fasta -relabel OTU
-
-		usearch11 -usearch_global ../all_SF.fasta -db uparse_otus.fasta -strand both -id 0.97 -otutabout uparse_otu_tab.txt -biomout uparse_otu_biom.biom
-
-		usearch11 -cluster_agg uparse_otus.fasta -treeout uparse_otus.tree -clusterout clusters.txt
-
-	cd ..
+#*****************************************************************************************
 
 echo ----------------------------------------------------------------------------
 echo Part b - Generating UNOISE ZOTUs
 echo ----------------------------------------------------------------------------
 
+# Cluster sequences in zero-radius operational taxonomic units (ZOTUs) using `-unoise3` command and generate a ZOTU table
 
-	mkdir ${unoise_zotus}
-	cd ${unoise_zotus}
+mkdir ${unoise_zotus}
+cd ${unoise_zotus}
 
-		usearch11 -unoise3 ../all_SF_DR.fasta -zotus unoise_zotus.fasta -tabbedout unoise_tab.txt
+  usearch11 -unoise3 ../all_SF_DR.fasta -zotus unoise_zotus.fasta -tabbedout unoise_tab.txt
 
-		usearch11 -fastx_relabel unoise_zotus.fasta -prefix Otu -fastaout unoise_zotus_relabeled.fasta -keep_annots
+	usearch11 -fastx_relabel unoise_zotus.fasta -prefix Otu -fastaout unoise_zotus_relabeled.fasta -keep_annots
 
-		usearch11 -otutab ../all_SF_DR.fasta -zotus unoise_zotus_relabeled.fasta -otutabout unoise_otu_tab.txt -biomout unoise_otu_biom.biom -mapout unoise_map.txt -notmatched unoise_notmatched.fasta -dbmatched dbmatches.fasta -sizeout
+	usearch11 -otutab ../all_SF_DR.fasta -zotus unoise_zotus_relabeled.fasta -otutabout unoise_otu_tab.txt -biomout unoise_otu_biom.biom -mapout unoise_map.txt -notmatched unoise_notmatched.fasta -dbmatched dbmatches.fasta -sizeout
 
-		usearch11 -cluster_agg unoise_zotus_relabeled.fasta -treeout unoise_zotus.tree -clusterout clusters.txt -id 0.80 -linkage min
+cd ..
+cd ..
 
-	cd ..
-	cd ..
 ################################################################################################
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo ANALYSIS COMPLETE

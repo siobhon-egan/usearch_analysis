@@ -14,27 +14,32 @@ echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo CLUSTERING
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Concatenate all singleton filter sequences into a single fasta file
+# Find the set of unique sequences in an input file, also called dereplication using `-fastx_uniques` command
+
+mkdir ${cluster}
+
+cat ${SF}/*.fasta > ${cluster}/all_SF.fasta
+
+cd ${cluster}
+
+usearch11 -fastx_uniques all_SF.fasta -fastaout all_SF_DR.fasta -sizeout
+
+#*****************************************************************************************
+
 echo ----------------------------------------------------------------------------
 echo Part a - Generating UPARSE OTUs
 echo ----------------------------------------------------------------------------
 
-mkdir ${cluster}
+# Cluster sequences in 97% operational taxonomic units (OTUs) using UPARSE algorithm `-cluster_otus` command and generate an OTU table
 
-	cat ${SF}/*.fasta > ${cluster}/all_SF.fasta
+mkdir ${uparse_otus}
+cd ${uparse_otus}
 
-cd ${cluster}
+	usearch11 -cluster_otus ../all_SF_DR.fasta -otus uparse_otus.fasta -relabel OTU
 
-	usearch11 -fastx_uniques all_SF.fasta -fastaout all_SF_DR.fasta -sizeout
+	usearch11 -usearch_global ../all_SF.fasta -db uparse_otus.fasta -strand both -id 0.97 -otutabout uparse_otu_tab.txt -biomout uparse_otu_biom.biom
 
-	mkdir ${uparse_otus}
-	cd ${uparse_otus}
-
-		usearch11 -cluster_otus ../all_SF_DR.fasta -otus uparse_otus.fasta -relabel OTU
-
-		usearch11 -usearch_global ../all_SF.fasta -db uparse_otus.fasta -strand both -id 0.97 -otutabout uparse_otu_tab.txt -biomout uparse_otu_biom.biom
-
-		usearch11 -cluster_agg uparse_otus.fasta -treeout uparse_otus.tree -clusterout clusters.txt
-
-	cd ..
+cd ..
 
 	##########################################################################################

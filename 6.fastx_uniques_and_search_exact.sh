@@ -19,18 +19,17 @@ echo Removing low abundant seqs singletons per sample
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo ""
 
-# Creating directories
+# Remove low abundant sequences (e.g. singletons) in samples using the `-fastx_uniques` command
 
 mkdir ${derep_dir}
 mkdir ${SF}
 mkdir ${low_abund_seqs}
 
 #*****************************************************************************************
-# Step 1: Dereplicating
+# Part 1: Dereplicating
 
 for file7 in ${labeled_data}/*.fasta
 	do
-
 		echo ""
 		echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		echo Removing singletons step 1: derep_fulllength
@@ -38,15 +37,13 @@ for file7 in ${labeled_data}/*.fasta
 		echo ${file7}
 
 		usearch11 -fastx_uniques ${file7} -fastaout "${derep_dir}/$(basename "$file7" .fasta).fasta" -sizeout
-	done
-
+done
 
 #*****************************************************************************************
-# Step 2: Filtering low abundant seqs {maxsize}
+# Part 2: Filtering low abundant seqs {maxsize}
 
 for file8 in ${derep_dir}/*.fasta
 	do
-
 		echo ""
 		echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		echo Removing singletons step 2: sorting uniques
@@ -54,21 +51,20 @@ for file8 in ${derep_dir}/*.fasta
 		echo ${file8}
 
 		usearch11 -sortbysize ${file8} -fastaout "${low_abund_seqs}/$(basename "$file8" .fasta).fasta" -maxsize ${maxsize}
-	done
+done
 
+#*****************************************************************************************
+# Step 3: Mapping reads
 
-	# Step 3: Mapping reads
-
-for file11 in ${labeled_data}/*.fasta
+for file9 in ${labeled_data}/*.fasta
 	do
-
 	  echo ""
 	  echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	  echo Removing singletons step 3: mapping reads to low abundant uniques
 	  echo input is:
-	  echo ${file11}
+	  echo ${file9}
 
-	  usearch11 -search_exact ${file11} -db "${low_abund_seqs}/$(basename "$file11" .fasta).fasta" -strand plus -notmatched "${SF}/$(basename "$file11" .fasta).fasta"
-	done
+	  usearch11 -search_exact ${file9} -db "${low_abund_seqs}/$(basename "$file9" .fasta).fasta" -strand plus -notmatched "${SF}/$(basename "$file9" .fasta).fasta"
+done
 
 ##########################################################################################

@@ -14,9 +14,10 @@ echo ---------------------------------------------------------------------------
 echo Part b - Generating UNOISE ZOTUs
 echo ----------------------------------------------------------------------------
 
+# Cluster sequences in zero-radius operational taxonomic units (ZOTUs) using `-unoise3` command and generate a ZOTU table
 
-	mkdir ${unoise_zotus}
-	cd ${unoise_zotus}
+mkdir ${unoise_zotus}
+cd ${unoise_zotus}
 
 		usearch11 -unoise3 ../all_SF_DR.fasta -zotus unoise_zotus.fasta -tabbedout unoise_tab.txt
 
@@ -24,9 +25,7 @@ echo ---------------------------------------------------------------------------
 
 		usearch11 -otutab ../all_SF_DR.fasta -zotus unoise_zotus_relabeled.fasta -otutabout unoise_otu_tab.txt -biomout unoise_otu_biom.biom -mapout unoise_map.txt -notmatched unoise_notmatched.fasta -dbmatched dbmatches.fasta -sizeout
 
-		usearch11 -cluster_agg unoise_zotus_relabeled.fasta -treeout unoise_zotus.tree -clusterout clusters.txt -id 0.80 -linkage min
-
-	cd ..
-	cd ..
+cd ..
+cd ..
 
 ##########################################################################################

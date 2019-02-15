@@ -15,11 +15,9 @@ minlen="150"
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 echo Quality control and removing dimer seqs
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-echo ""
 
-		mkdir ${QF}
+mkdir ${QF}
 
-#*****************************************************************************************
 for file4 in ${primer_matched}/*.fastq
 	do
 		echo ""
@@ -28,7 +26,7 @@ for file4 in ${primer_matched}/*.fastq
 		echo input is:
 		echo ${file4}
 
-	usearch11 -fastq_filter ${file4} -fastaout "${QF}/$(basename "$file4" .fastq).fasta" -fastq_maxee ${max_ee} -fastq_minlen ${minlen}
+    usearch11 -fastq_filter ${file4} -fastaout "${QF}/$(basename "$file4" .fastq).fasta" -fastq_maxee ${max_ee} -fastq_minlen ${minlen}
 done
 
 ##########################################################################################
