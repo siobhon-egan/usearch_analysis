@@ -15,22 +15,22 @@ echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 mkdir $read_summary
 
-for fq in $raw_data/*R1*.fastq
+for fastq in $raw_data/*R1*.fastq
   do
     echo ""
     echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     echo "fastq_info forward reads"
 
-    usearch11 -fastx_info $fastq -output $read_summary/a_fwd_fastq_info.txt
+    usearch11 -fastx_info $fastq -output ${read_summary}/a_fwd_fastq_info.txt
 done
 
-for fq in $raw_data/*R2*.fastq
+for fastq in $raw_data/*R2*.fastq
   do
     echo ""
     echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     echo "fastq_info forward reads"
 
-    usearch11 -fastx_info $fastq -output $read_summary/b_rev_fastq_info.txt
+    usearch11 -fastx_info $fastq -output ${read_summary}/b_rev_fastq_info.txt
 done
 
 ##########################################################################################

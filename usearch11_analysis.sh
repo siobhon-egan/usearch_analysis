@@ -1,17 +1,20 @@
 #!/bin/bash
 ##########################################################################################
-##########################################################################################
 ############################# USEARCH v11 complete pipeline ##############################
-##########################################################################################
+# Author: Siobhon Egan (siobhonegan@hotmail.com)
+#
+# Documentation of this script and pipeline can be found on GitHub repo link here https://github.com/siobhon-egan/usearch_analysis
+# For offical USEARCH documentation please see Edgar's website https://www.drive5.com/usearch/
 ##########################################################################################
 #	Requirements: usearch11 must be installed on the PATH as "usearch11".
+# Download available here https://www.drive5.com/usearch/download.html
 # Remeber if you have a large dataset you will need the 64 bit version.
 #	This script will work in unix and linux environments.
 #
 #	This script taked raw MiSeq demultiplexed .fastq files for input and performs the following tasks:
 #
 #	1) Inspecting raw fastq sequences
-# 2) Merging of illumina paired reads
+# 2) Merging of illumina paired end reads
 #	2) Trimming of primer sequences and distal bases and removal of sequences without correct primer sequences
 #	3) Quality filtering of `.fastq` sequence data and removal of short dimer seqs to generate `.fasta` sequence files
 #	4) Renaming files with USEARCH labels "barcodelabel=sample_id;sequence_id"
@@ -23,10 +26,10 @@
 #	Input raw unmerged filenames must be named "sample_id_SXXX_L001_R1_001.fastq" (read 1)
 #	and "sample_id_SXXX_L001_R2_001.fastq" (read 2) and all deposited in a directory specified
 #	by the "$raw_data" variable. "SXXX" is the sample number given by the MiSeq
-#	in the order you entered them in the Sample Sheet.
+# If your sequence files are zipped (i.e. *.fastq.gz) you will need to unzip them, you can do so using unix command gunzip *.fastq.gz
 #
 #	Before use: $chmod 775 this_script.sh
-#	To run: $./this_script.sh
+#	To run: $./usearch_analysis.sh
 #	This script will read any input directory specified by the "raw_data" variable, but will deposit all
 #	output into the current working diretory.
 ##########################################################################################
@@ -46,8 +49,8 @@ primer_matched="3a.primer_matches"
 # Enter directory for sequences that do not match primers
 primer_not_matched="3b.primer_not_matched"
 # Enter forward sequences (5'-3'). Wildcard letters indicating degenerate positions in the primer are supported. See IUPAC(https://drive5.com/usearch/manual/IUPAC_codes.html) codes for details.
-fwd_primer="AGAGTTTGATCCTGGCTYAG" #16S v1-2 primer, ref Gofton et al. Parasites & Vectors (2015) 8:345
-rev_primer="TGCTGCCTCCCGTAGGAGT" #16S v1-2 primer, ref Turner et al. J Eukaryot Microbiol (1999) 46(4):32
+fwd_primer="GTGBCAGCMGCCGCGGTAA" #16S v4 primer 515F
+rev_primer="GGACTACHVGGGTWTCTAAT" #16S v4 primer 806R
 # Enter directory for quality filtered output
 QF="4.quality_filtered"
 # Enter max error rate. Natural choice is 1, however may want to decrease to 0.5 or 0.25 for more stringent filtering.
@@ -93,7 +96,7 @@ for fq in $raw_data/*R1*.fastq
     echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     echo "fastq_info forward reads"
 
-    usearch11 -fastx_info $fastq -output $read_summary/a_fwd_fastq_info.txt
+    usearch11 -fastx_info $fastq -output ${read_summary}/read_info_R1.txt
 done
 
 for fq in $raw_data/*R2*.fastq
@@ -102,7 +105,7 @@ for fq in $raw_data/*R2*.fastq
     echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     echo "fastq_info forward reads"
 
-    usearch11 -fastx_info $fastq -output $read_summary/b_rev_fastq_info.txt
+    usearch11 -fastx_info $fastq -output ${read_summary}/read_info_R2.txt
 done
 
 ##########################################################################################
@@ -162,7 +165,7 @@ for file3 in ${merged_data}/*.fastq
 
 	usearch11 -search_pcr2 ${file3} -fwdprimer ${fwd_primer} \
 	-revprimer ${rev_primer} \
-	-strand both -fastqout "${primer_matched}/$(basename ${file3})" -notmatchedfq "${primer_not_matched}/$(basename ${file3})" -tabbedout ${primer_matched}pcr2_output.txt
+	-strand both -fastqout "${primer_matched}/$(basename ${file3})" -notmatchedfq "${primer_not_matched}/$(basename ${file3})" -tabbedout ${primer_matched}/pcr2_output.txt
 done
 
 ##########################################################################################
@@ -292,7 +295,7 @@ cat ${SF}/*.fasta > ${cluster}/all_SF.fasta
 
 cd ${cluster}
 
-usearch11 -fastx_uniques all_SF.fasta -fastaout all_SF_DR.fasta -sizeout
+  usearch11 -fastx_uniques all_SF.fasta -fastaout all_SF_DR.fasta -sizeout
 
 #*****************************************************************************************
 
@@ -334,16 +337,17 @@ cd ${unoise_zotus}
 
 	usearch11 -fastx_relabel unoise_zotus.fasta -prefix Otu -fastaout unoise_zotus_relabeled.fasta -keep_annots
 
-	usearch11 -otutab ../all_SF_DR.fasta -zotus unoise_zotus_relabeled.fasta -otutabout unoise_otu_tab.txt -biomout unoise_otu_biom.biom -mapout unoise_map.txt -notmatched unoise_notmatched.fasta -dbmatched dbmatches.fasta -sizeout
+	usearch11 -otutab ../all_SF.fasta -zotus unoise_zotus_relabeled.fasta -otutabout unoise_otu_tab.txt -biomout unoise_otu_biom.biom -mapout unoise_map.txt -notmatched unoise_notmatched.fasta -dbmatched dbmatches.fasta -sizeout
 
-  # The next two lines produce a distance matrix file and then a tree (newick format)
-  # Current parameters are a guide only and you will need to optimse them for your data
-  # Large datasets can take a long time, so you can skip this part for now to speed up analysis
+# The next two lines produce a distance matrix file and then a tree (newick format)
+# Current parameters are a guide only and you will need to optimse them for your data
+# Large datasets can take a long time, so you can skip this part for now to speed up analysis
 
   usearch11 -calc_distmx unoise_zotus.fasta -tabbedout unoise_zotus_distmx.txt -maxdist 0.2 -termdist 0.3
 
   usearch11 -cluster_aggd unoise_zotus_distmx.txt -treeout unoise_zotus_clusters.tree -clusterout unoise_zotus_clusters.txt \
     -id 0.80 -linkage min
+
 cd ..
 cd ..
 

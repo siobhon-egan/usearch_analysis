@@ -27,7 +27,7 @@ for file3 in ${merged_data}/*.fastq
 
 	usearch11 -search_pcr2 ${file3} -fwdprimer ${fwd_primer} \
 	-revprimer ${rev_primer} \
-	-strand both -fastqout "${primer_matched}/$(basename ${file3})" -notmatchedfq "${primer_not_matched}/$(basename ${file3})" -tabbedout ${primer_matched}pcr2_output.txt
+	-strand both -fastqout "${primer_matched}/$(basename ${file3})" -notmatchedfq "${primer_not_matched}/$(basename ${file3})" -tabbedout ${primer_matched}/pcr2_output.txt
 done
 
 ##########################################################################################
