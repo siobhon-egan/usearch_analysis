@@ -67,3 +67,10 @@ $./usearch_analysis.sh
 
 *Enter max size to discard i.e. to discard singletons = 1, duplicates = 2*
 - `maxsize="1"`
+
+## Alternative simple script
+
+I have created a simplified version of the usearch11 script [here](https://github.com/siobhon-egan/usearch_analysis/blob/master/usearchv11_simple.sh)
+
+This simplified pipeline does not search for any primers/distal sequences and does not differentiate sequences based on expected length.
+I Recommend this script if working with unknown amplicon illumina NGS data i.e. you are not sure what primers were used and/or the target length of amplicons.
