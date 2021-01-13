@@ -75,7 +75,7 @@ unoise_zotus="8b.zotus"
 ##########################################################################################
 
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-echo Merging paried illumina `.fastq` sequences
+echo Merging paried illumina .fastq sequences
 echo %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Merge paired-end reads using `-fastq_mergepairs` command, and rename sequences. This would be done before primers are trimmed.
